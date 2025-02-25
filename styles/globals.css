@@ -1,0 +1,26 @@
+header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: lightgreen;
+}
+.login-form {
+  display: flex;
+  flex-direction: column;
+}
+input {
+  width: 200px;
+}
+button {
+  width: 100px;
+}
+.dashboard {
+  background-color: lightgray;
+  margin-bottom: 15px;
+  display: flex;
+  justify-content: space-between;
+}
+.line p {
+  margin: 0;
+  background-color: lightcoral;
+}
