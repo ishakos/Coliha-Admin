@@ -30,8 +30,8 @@ export default function Dashboard() {
     const storageRef = ref(storage, `${user._id}/`);
     axios
       .post(
-        `${domain}/admins/deleteaccount/`,
-        { id: user.id },
+        `${domain}/admins/deleteaccount`,
+        { id: user._id },
         {
           headers: {
             accessTokenAdmin: localStorage.getItem("accessTokenAdmin") || "",
