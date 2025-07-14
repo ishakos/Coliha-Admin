@@ -62,13 +62,16 @@ admin/
 ---
 
 🚀 Getting Started
-git clone https://github.com/yourusername/Coliha-Admin.git
+git clone https://github.com/ishakos/Coliha-Admin.git
 cd Coliha-Admin
 npm install
 npm run dev
 
 ⚠️ **Don't forget to set up Firebase!**  
 Make sure you configure your `firebase.js` file with your project credentials. Without it, authentication or related features will not work properly.
+
+🧑‍💻 Author
+Ishak – Full-stack developer of Coliha logistics system.
 
 
 
