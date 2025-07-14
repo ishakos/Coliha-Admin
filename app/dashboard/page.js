@@ -1,12 +1,12 @@
 "use client";
 
-import { useAuth } from "../../hooks/useAuth";
-import { AuthContext } from "../../context/AuthContext";
-import Dashboard from "@/components/Dashboard";
+import { AuthContext } from "@/context/AuthContext";
+import { useRedirect } from "../../hooks/useRedirect";
+import Dashboard from "@/components/Dashboard/Dashboard";
 
 export default function DashboardPage() {
   const { logged, loading } = AuthContext();
-  useAuth();
+  useRedirect();
 
   return (
     <>

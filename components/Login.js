@@ -11,20 +11,35 @@ export default function Login() {
   const [error1, setError1] = useState(false);
   const [error2, setError2] = useState(false);
   const router = useRouter();
-  const { domain } = AuthContext();
+  const { domain, setRefresh } = AuthContext();
 
-  const login = () => {
+  const login = async () => {
     const data = { username: username, password: password };
-    axios.post(`${domain}/admins/login/`, data).then((response) => {
-      if (response.data.noAdmin) {
-        setError1(true);
-      } else if (response.data.wrongPass) {
-        setError2(true);
+    if (!username) {
+      setError1(true);
+      return;
+    }
+    if (!password) {
+      setError2(true);
+      return;
+    }
+    try {
+      const response = await axios.post(`${domain}/admins/login/`, data);
+      sessionStorage.setItem("accessTokenAdmin", response.data);
+      setRefresh((prev) => !prev);
+    } catch (error) {
+      if (error.response && error.response.status === 404) {
+        if (error.response.data && error.response.data.noAdmin) {
+          setError1(true);
+        } else if (error.response.data && error.response.data.wrongPass) {
+          setError2(true);
+        } else {
+          toast.error("An error occurred during login. Please try again.");
+        }
       } else {
-        localStorage.setItem("accessTokenAdmin", response.data);
-        router.push("/dashboard");
+        toast.error("An error occurred during login. Please try again.");
       }
-    });
+    }
   };
 
   return (

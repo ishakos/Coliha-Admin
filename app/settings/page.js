@@ -1,11 +1,11 @@
 "use client";
 
-import { useAuth } from "../../hooks/useAuth";
+import { useRedirect } from "../../hooks/useRedirect";
 import { AuthContext } from "../../context/AuthContext";
 
 export default function SettingsPage() {
   const { logged, loading } = AuthContext();
-  useAuth();
+  useRedirect();
 
   return (
     <>

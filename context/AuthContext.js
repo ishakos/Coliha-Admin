@@ -2,20 +2,11 @@
 
 import { createContext, useContext, useState, useEffect } from "react";
 import axios from "axios";
-import { usePathname } from "next/navigation";
 import { useRouter } from "next/navigation";
-import {
-  ref,
-  uploadBytes,
-  getDownloadURL,
-  listAll,
-  getMetadata,
-  deleteObject,
-} from "firebase/storage";
+import { ref, getDownloadURL } from "firebase/storage";
 import { storage } from "../firebase";
 
 const AuthCtx = createContext();
-const ReceiptsCtx = createContext();
 
 export function AuthProvider({ children }) {
   //context1
@@ -23,206 +14,154 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
   const [listOfUsers, setListOfUsers] = useState([]);
   const [offers, setOffers] = useState([]);
-  //context2
-  const [listOfOrders, setListOfOrders] = useState([]);
-  const [ordersLoading, setOrdersLoading] = useState(true);
+  const [listOfClients, setListOfClients] = useState([]);
   const [listOfReceipts, setListOfReceipts] = useState([]);
   const [receiptsLoading, setReceiptsLoading] = useState(true);
-  const pathname = usePathname();
-  const router = useRouter();
+  const [refresh, setRefresh] = useState(false);
 
   const domain = "http://localhost:3001";
+  const router = useRouter();
 
-  //context1
-  //no dependency array might be a good solution here
+  const handleLogout = () => {
+    router.push("/");
+    setLogged(false);
+    setLoading(false);
+    sessionStorage.removeItem("accessTokenAdmin");
+  };
+
+  const handleLogin = () => {
+    setLogged(true);
+    setLoading(false);
+  };
+
   useEffect(() => {
-    //check admin
+    let clients = [];
+
+    setLoading(true);
+    setLogged(false);
+
     const checkAdmin = async () => {
-      try {
-        const token = localStorage.getItem("accessTokenAdmin");
-        if (!token) {
-          setLogged(false);
-          setLoading(false);
-          return;
-        } else {
-          axios
-            .get(`${domain}/admins/auth`, {
-              headers: { accessTokenAdmin: token || "" },
-            })
-            .then((response) => {
-              if (response.data.noToken) {
-                router.push("/unwanted-page");
-                sessionStorage.clear();
-                localStorage.clear();
-              }
-              if (response.data.authentificated) {
-                setLoading(false);
-                setLogged(true);
-              } else {
-                setLogged(false);
-                setLoading(false);
-                return;
-              }
-            });
-          await fetchUsers();
-        }
-      } catch (error) {
-        setLogged(false);
-        setLoading(false);
-        console.error("Error fetching token");
-        router.push("/unwanted-page");
+      const token = sessionStorage.getItem("accessTokenAdmin");
+      if (!token) {
+        handleLogout();
+        return;
       }
+      await fetchUsers();
     };
 
     const fetchUsers = async () => {
       try {
-        axios
-          .get(`${domain}/admins/users`, {
-            headers: {
-              accessTokenAdmin: localStorage.getItem("accessTokenAdmin") || "",
-            },
-          })
-          .then((response) => {
-            if (response.data.noToken) {
-              router.push("/unwanted-page");
-              sessionStorage.clear();
-              localStorage.clear();
-            }
-            if (!response.data.error) {
-              setListOfUsers(response.data.users);
-            } else {
-              setLoading(false);
-              console.error("Error fetching users");
-              router.push("/unwanted-page");
-              return;
-            }
-          });
+        const response = await axios.get(`${domain}/admins/users`, {
+          headers: {
+            accessTokenAdmin: sessionStorage.getItem("accessTokenAdmin") || "",
+          },
+        });
+        setListOfUsers(response.data.users);
         await fetchOffers();
       } catch (error) {
-        console.error("Error fetching users");
-        router.push("/unwanted-page");
+        if (error?.response?.status === 401) {
+          handleLogout();
+          return;
+        } else {
+          console.error(error);
+        }
       }
     };
 
     const fetchOffers = async () => {
       try {
-        axios.get(`${domain}/subscribers`).then((response) => {
-          if (!response.data.error) {
-            setOffers(response.data.offers);
-          } else {
-            setLoading(false);
-            console.error("Error fetching offers");
-            router.push("/unwanted-page");
-            return;
-          }
-        });
+        const response = await axios.get(`${domain}/subscribers`);
+        setOffers(response.data.offers);
+        await fetchClients();
       } catch (error) {
-        console.error("Error fetching offers");
-        router.push("/unwanted-page");
+        if (error?.response?.status === 401) {
+          handleLogout();
+          return;
+        } else {
+          console.error(error);
+        }
+      }
+    };
+
+    //Fetch clients who purchased a subscription request and their receipts
+    const fetchClients = async () => {
+      try {
+        const response = await axios.get(
+          `${domain}/admins/pending-sub-requests`,
+          {
+            headers: {
+              accessTokenAdmin:
+                sessionStorage.getItem("accessTokenAdmin") || "",
+            },
+          }
+        );
+        setListOfClients(response.data.clients);
+        clients = response.data.clients;
+        await fetchReceipts(clients);
+      } catch (error) {
+        if (error?.response?.status === 401) {
+          handleLogout();
+          return;
+        } else {
+          console.error(error);
+        }
+      }
+    };
+
+    const fetchReceipts = async (clients) => {
+      try {
+        let receipts = [];
+        //if there is no clients no need to fetch receipts
+        if (clients.length > 0) {
+          const receiptPromises = clients.map(async (client) => {
+            const imageRef = ref(storage, `${client._id}/orders/receipt`);
+            try {
+              const url = await getDownloadURL(imageRef);
+              receipts.push(url);
+            } catch (error) {
+              console.error(error);
+            }
+          });
+          await Promise.all(receiptPromises);
+        }
+        setReceiptsLoading(false);
+        setListOfReceipts(receipts);
+        handleLogin();
+      } catch (error) {
+        console.error(error);
       }
     };
 
     checkAdmin();
-  }, [pathname]);
-
-  //context2
-  //fetch orders and receipts
-  useEffect(() => {
-    let orders = [];
-    const fetchOrdersAndReceipts = async () => {
-      try {
-        axios
-          .get(`${domain}/admins/orders`, {
-            headers: {
-              accessTokenAdmin: localStorage.getItem("accessTokenAdmin") || "",
-            },
-          })
-          .then((response) => {
-            if (response.data.noToken) {
-              router.push("/unwanted-page");
-              sessionStorage.clear();
-              localStorage.clear();
-            }
-            if (!response.data.error) {
-              setListOfOrders(response.data.orders);
-              setOrdersLoading(false);
-              orders = response.data.orders;
-              fetchReceipts(orders);
-            } else {
-              console.error("error fetching orders");
-              router.push("/unwanted-page");
-            }
-          });
-      } catch (error) {
-        console.error("error fetching orders and receipts");
-        router.push("/unwanted-page");
-      }
-    };
-
-    const fetchReceipts = (orders) => {
-      try {
-        let receipts = [];
-        if (orders.length > 0) {
-          orders.map((order) => {
-            const imageRef = ref(storage, `${order._id}/orders/receipt`);
-            getDownloadURL(imageRef)
-              .then((url) => {
-                receipts.push(url);
-                setListOfReceipts(receipts);
-              })
-              .catch(() => {
-                console.error("error fetching receipts");
-                router.push("/unwanted-page");
-              });
-          });
-        }
-      } catch (error) {
-        console.error("error fetching orders");
-        router.push("/unwanted-page");
-      }
-    };
-    fetchOrdersAndReceipts();
-  }, [pathname]);
-
-  useEffect(() => {
-    if (
-      listOfReceipts.length === listOfOrders.length &&
-      listOfOrders.length > 0
-    ) {
-      setReceiptsLoading(false);
-    }
-  }, [listOfReceipts]);
+  }, [refresh]);
 
   return (
     <AuthCtx.Provider
       value={{
         logged,
+        setLogged,
         loading,
+        setLoading,
         domain,
         listOfUsers,
         setListOfUsers,
         offers,
+        setOffers,
+        listOfClients,
+        setListOfClients,
+        listOfReceipts,
+        setListOfReceipts,
+        receiptsLoading,
+        setReceiptsLoading,
+        refresh,
+        setRefresh,
       }}
     >
-      <ReceiptsCtx.Provider
-        value={{
-          listOfOrders,
-          setListOfOrders,
-          ordersLoading,
-          listOfReceipts,
-          receiptsLoading,
-        }}
-      >
-        {children}
-      </ReceiptsCtx.Provider>
+      {children}
     </AuthCtx.Provider>
   );
 }
 
 export function AuthContext() {
   return useContext(AuthCtx);
-}
-
-export function ReceiptsContext() {
-  return useContext(ReceiptsCtx);
 }

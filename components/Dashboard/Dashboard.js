@@ -2,7 +2,7 @@ import { AuthContext } from "@/context/AuthContext";
 import axios from "axios";
 import { useState } from "react";
 import { ref, getMetadata, deleteObject } from "firebase/storage";
-import { storage } from "../firebase";
+import { storage } from "../../firebase";
 
 export default function Dashboard() {
   const [sendingRequest, setSendingRequest] = useState(false);
@@ -13,106 +13,63 @@ export default function Dashboard() {
     pointerEvents: sendingRequest ? "none" : "auto",
   };
 
+  const handleLogout = () => {
+    sessionStorage.removeItem("accessTokenAdmin");
+    setLogged(false);
+    setListOfUsers([]);
+    setOffers([]);
+    setListOfClients([]);
+    setListOfReceipts([]);
+    router.push("/unwanted-page");
+  };
+
   function searchOfferName(offerId) {
     if (!offerId) return "user has no offer";
     for (let i = 0; i < offers?.length; i++) {
-      if (offers[i]?._id === offerId) {
-        return offers[i].title;
+      if (offers?.[i]?._id === offerId) {
+        return offers?.[i]?.title;
       }
     }
     return "user has no offer";
   }
 
   //delete account
-  const onDeleteUser = (user) => {
+  const onDeleteUser = async (user) => {
     if (!user) return;
     setSendingRequest(true);
-    const storageRef = ref(storage, `${user._id}/`);
-    axios
-      .post(
-        `${domain}/admins/deleteaccount`,
-        { id: user._id },
+    const storageRef = ref(storage, `${user?._id}/`);
+    try {
+      const response = await axios.post(
+        `${domain}/admins/delete-account/${user?._id}`,
         {
           headers: {
-            accessTokenAdmin: localStorage.getItem("accessTokenAdmin") || "",
+            accessTokenAdmin: sessionStorage.getItem("accessTokenAdmin") || "",
           },
         }
-      )
-      .then((response) => {
-        if (response.data.noToken) {
-          router.push("/unwanted-page");
-          sessionStorage.clear();
-          localStorage.clear();
-        }
-        if (response.data.deleted) {
-          //deleting user pfp
-          getMetadata(storageRef)
-            .then(() => {
-              deleteObject(storageRef);
-            })
-            .catch(() => {});
-          //ui re-render
-          const updatedList = listOfUsers.filter((user) => user.id !== user.id);
-          setListOfUsers(updatedList);
-          setSendingRequest(false);
-        } else {
-          alert(response.data.error);
-          setSendingRequest(false);
-        }
-      });
+      );
+      //deleting user pfp
+      try {
+        await getMetadata(storageRef);
+        await deleteObject(storageRef);
+      } catch {}
+      //ui re-render
+      const updatedList = listOfUsers?.filter((u) => u?.id !== user?.id);
+      setListOfUsers(updatedList);
+    } catch (error) {
+      if (error?.response?.status === 401) {
+        handleLogout();
+      } else {
+        alert("Error deleting user. Please try again.");
+      }
+    } finally {
+      setSendingRequest(false);
+    }
   };
 
   //save new modified data
-  const onSave = (currentUsername, newUsername, selectedNewOffer) => {
-    if (currentUsername === newUsername && !selectedNewOffer) return;
-    setSendingRequest(true);
-    axios
-      .post(
-        `${domain}/admins/updateuser/`,
-        {
-          currentUsername: currentUsername,
-          newUsername: newUsername,
-          selectedNewOffer: selectedNewOffer,
-        },
-        {
-          headers: {
-            accessTokenAdmin: localStorage.getItem("accessTokenAdmin") || "",
-          },
-        }
-      )
-      .then((response) => {
-        if (response.data.noToken) {
-          router.push("/unwanted-page");
-          sessionStorage.clear();
-          localStorage.clear();
-        }
-        if (response.data.updated) {
-          axios
-            .get(`${domain}/admins/users`, {
-              headers: {
-                accessTokenAdmin:
-                  localStorage.getItem("accessTokenAdmin") || "",
-              },
-            })
-            .then((response) => {
-              if (response.data.noToken) {
-                router.push("/unwanted-page");
-                sessionStorage.clear();
-                localStorage.clear();
-              }
-              if (!response.data.error) {
-                setListOfUsers(response.data.users);
-              } else {
-                window.location.reload();
-              }
-              setSendingRequest(false);
-              alert(`${currentUsername} Updated`);
-            });
-        } else {
-          alert(response.data.error);
-          setSendingRequest(false);
-        }
-      });
+  // ◘ FOR LATER
+  const onSave = async (currentUsername, newUsername, selectedNewOffer) => {
+    return;
   };
 
   return (
@@ -153,12 +110,12 @@ export default function Dashboard() {
 
 function User({ user, index, onDeleteUser, onSave, searchOfferName, offers }) {
   const [edit, setEdit] = useState(false);
-  const [username, setUsername] = useState(user.username);
+  const [username, setUsername] = useState(user?.username);
   const [selectedNewOffer, setSelectedNewOffer] = useState(null);
 
   return (
     <div className="line" key={index}>
-      <p>{user._id}</p>
+      <p>{user?._id}</p>
       {edit ? (
         <input
           type="text"
@@ -169,13 +126,13 @@ function User({ user, index, onDeleteUser, onSave, searchOfferName, offers }) {
           }}
         />
       ) : (
-        <p>{user.username}</p>
+        <p>{user?.username}</p>
       )}
-      <p>{user.email}</p>
-      <p>{user.verified ? "Verified" : "Not Verified"}</p>
-      <p>{user.profilePic.substring(0, 30) + "..."}</p>
-      <p>{user.pfp ? "true" : "false"}</p>
-      <p>{user.secondEVR ? "True" : "False"}</p>
+      <p>{user?.email}</p>
+      <p>{user?.verified ? "Verified" : "Not Verified"}</p>
+      <p>{user?.profilePic?.substring(0, 30) + "..."}</p>
+      <p>{user?.pfp ? "true" : "false"}</p>
+      <p>{user?.secondEVR ? "True" : "False"}</p>
       {edit ? (
         <>
           <label key={0}>
@@ -187,15 +144,15 @@ function User({ user, index, onDeleteUser, onSave, searchOfferName, offers }) {
             />
             noOffer
           </label>
-          {offers.slice(1).map((offer, index) => (
+          {offers?.slice(1).map((offer, index) => (
             <label key={index + 1}>
               <input
                 type="radio"
                 name="option"
-                checked={selectedNewOffer === offer.title}
-                onChange={() => setSelectedNewOffer(offer.title)}
+                checked={selectedNewOffer === offer?.title}
+                onChange={() => setSelectedNewOffer(offer?.title)}
               />
-              {offer.title}
+              {offer?.title}
             </label>
           ))}
           <button
@@ -207,13 +164,13 @@ function User({ user, index, onDeleteUser, onSave, searchOfferName, offers }) {
           </button>
         </>
       ) : (
-        <p>{searchOfferName(user.purchasedOffer.offer)}</p>
+        <p>{searchOfferName(user?.purchasedOffer?.offer)}</p>
       )}
-      <p>{user.createdAt}</p>
+      <p>{user?.createdAt}</p>
       <button
         onClick={() => {
           setEdit((edit) => !edit);
-          setUsername(user.username);
+          setUsername(user?.username);
           setSelectedNewOffer(null);
         }}
       >
@@ -224,7 +181,7 @@ function User({ user, index, onDeleteUser, onSave, searchOfferName, offers }) {
           <>
             <button
               onClick={() => {
-                onSave(user.username, username, selectedNewOffer);
+                onSave(user?.username, username, selectedNewOffer);
                 setEdit(false);
               }}
             >

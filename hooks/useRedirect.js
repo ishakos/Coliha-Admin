@@ -3,7 +3,7 @@ import { usePathname } from "next/navigation";
 import { AuthContext } from "../context/AuthContext";
 import { useRouter } from "next/navigation";
 
-export function useAuth() {
+export function useRedirect() {
   const { logged, loading } = AuthContext();
   const pathname = usePathname();
   const router = useRouter();

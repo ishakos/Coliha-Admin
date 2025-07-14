@@ -2,11 +2,11 @@
 
 import Login from "../components/Login";
 import { AuthContext } from "@/context/AuthContext";
-import { useAuth } from "@/hooks/useAuth";
+import { useRedirect } from "@/hooks/useRedirect";
 
 export default function LoginPage() {
   const { loading, logged } = AuthContext();
-  useAuth();
+  useRedirect();
   return (
     <>
       {loading ? (

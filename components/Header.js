@@ -2,20 +2,34 @@
 
 import Link from "next/link";
 import { AuthContext } from "../context/AuthContext";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 
 export default function Header() {
-  const { logged, loading } = AuthContext();
+  const {
+    logged,
+    loading,
+    setLogged,
+    setListOfUsers,
+    setOffers,
+    setListOfClients,
+    setListOfReceipts,
+  } = AuthContext();
   const pathname = usePathname();
+  const router = useRouter();
 
   const logout = () => {
-    localStorage.clear();
-    sessionStorage.clear();
+    sessionStorage.removeItem("accessTokenAdmin");
+    setLogged(false);
+    setListOfUsers([]);
+    setOffers([]);
+    setListOfClients([]);
+    setListOfReceipts([]);
+    router.push("/");
   };
 
   const headerItem = () => {
     if (loading) {
-      return <></>;
+      return <header>Loading header...</header>;
     } else {
     }
     switch (pathname) {

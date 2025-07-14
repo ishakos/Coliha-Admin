@@ -4,7 +4,7 @@ import "../styles/globals.css";
 
 export const metadata = {
   title: "Admin Home",
-  description: "Description?",
+  description: "Description of Admin Home",
 };
 
 export default function RootLayout({ children }) {

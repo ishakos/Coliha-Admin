@@ -3,9 +3,5 @@
 import ErrorPage from "@/components/ErrorPage";
 
 export default function UnwantedPage() {
-  return (
-    <>
-      <ErrorPage />
-    </>
-  );
+  return <ErrorPage />;
 }

@@ -1,13 +1,13 @@
 "use client";
 
+import Orders from "@/components/Dashboard/Orders";
 import { AuthContext } from "@/context/AuthContext";
-import { useAuth } from "@/hooks/useAuth";
-import Orders from "@/components/Orders";
+import { useRedirect } from "@/hooks/useRedirect";
 
 export default function OrdersPage() {
   const { logged, loading } = AuthContext();
 
-  useAuth();
+  useRedirect();
 
   return (
     <>
