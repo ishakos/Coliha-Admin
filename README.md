@@ -20,8 +20,11 @@ This panel interfaces with the Coliha backend API and is **not publicly accessib
   - Receipt status updated
   - User subscription status updated via backend
 
+---
 
+### ✅ Test Receipt Approval
 
+- 🧪 To test receipt approval, send a POST request to `https://coliha-server.onrender.com/admin/accept-receipt` with `{ "username": "desired_username" }` in the body — it will mark that user's receipt as accepted.
 
 
 
