@@ -15,7 +15,7 @@ This panel interfaces with the Coliha backend API and is **not publicly accessib
 ### 📄 Receipt Management
 
 - View all client-submitted **subscription renewal receipts**
-- **Accept** or **Refuse** each receipt with buttons
+- **Accept** or **Refuse** each receipt 
 - On action:
   - Receipt status updated
   - User subscription status updated via backend
